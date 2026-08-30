@@ -1,0 +1,52 @@
+[
+  {
+    "pre_text": [
+      "The company reported continued revenue growth."
+    ],
+    "post_text": [
+      "Management attributed the increase to higher subscription demand."
+    ],
+    "table": [
+      ["Metric", "2023", "2024"],
+      ["Revenue", "100", "120"],
+      ["Operating income", "20", "30"]
+    ],
+    "id": "report-a-0",
+    "filename": "report-a",
+    "qa": {
+      "question": "What was the revenue growth rate?",
+      "answer": "20%",
+      "program": "subtract(120, 100), divide(#0, 100), multiply(#1, const_100)",
+      "gold_inds": {
+        "table_1": "Revenue | 100 | 120"
+      },
+      "exe_ans": "20",
+      "program_re": "multiply(divide(subtract(120, 100), 100), const_100)"
+    }
+  },
+  {
+    "pre_text": [
+      "Cash and equivalents declined during the year."
+    ],
+    "post_text": [
+      "The decline primarily reflected capital expenditures."
+    ],
+    "table": [
+      ["Metric", "2023", "2024"],
+      ["Cash and equivalents", "80", "60"],
+      ["Capital expenditures", "10", "15"]
+    ],
+    "id": "report-b-0",
+    "filename": "report-b",
+    "qa": {
+      "question": "Why did cash and equivalents decline?",
+      "answer": "Capital expenditures",
+      "program": "",
+      "gold_inds": {
+        "text_1": "The decline primarily reflected capital expenditures."
+      },
+      "exe_ans": "",
+      "program_re": ""
+    }
+  }
+]
