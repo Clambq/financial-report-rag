@@ -1,0 +1,20 @@
+{
+  "bm25_weight": 0.5,
+  "candidate_k": 10,
+  "dense_model_name": "sentence-transformers/all-MiniLM-L6-v2",
+  "dense_weight": 1.0,
+  "device": "cuda",
+  "finqa_revision": "0f16e2867befa6840783e58be38c9efb9229d742",
+  "methods": [
+    "bm25",
+    "dense",
+    "hybrid",
+    "hybrid_rerank"
+  ],
+  "python_version": "3.12.13",
+  "query_count": 1147,
+  "reranker_model_name": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+  "rrf_k": 60,
+  "split": "test",
+  "top_k": 5
+}

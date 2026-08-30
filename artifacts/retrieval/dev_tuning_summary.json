@@ -1,0 +1,54 @@
+{
+  "selection_rule": "highest Recall@5, then MRR, then lower P95 latency",
+  "query_count": 883,
+  "split": "dev",
+  "selected": {
+    "candidate_k": 10,
+    "bm25_weight": 0.5,
+    "dense_weight": 1.0
+  },
+  "hybrid_rerank_grid": [
+    {
+      "candidate_k": 10,
+      "bm25_weight": 0.5,
+      "recall_at_5": 0.8236086393787414,
+      "mrr": 0.7450169875424689,
+      "p95_ms": 14.67612
+    },
+    {
+      "candidate_k": 10,
+      "bm25_weight": 1.0,
+      "recall_at_5": 0.8226541012781103,
+      "mrr": 0.7479614949037373,
+      "p95_ms": 17.77772
+    },
+    {
+      "candidate_k": 10,
+      "bm25_weight": 2.0,
+      "recall_at_5": 0.7967777598015423,
+      "mrr": 0.7371272178180446,
+      "p95_ms": 17.68577
+    },
+    {
+      "candidate_k": 20,
+      "bm25_weight": 0.5,
+      "recall_at_5": 0.8224828776357654,
+      "mrr": 0.7440921102302755,
+      "p95_ms": 22.95372
+    },
+    {
+      "candidate_k": 20,
+      "bm25_weight": 1.0,
+      "recall_at_5": 0.8215391252763846,
+      "mrr": 0.7438089845224612,
+      "p95_ms": 19.9051
+    },
+    {
+      "candidate_k": 20,
+      "bm25_weight": 2.0,
+      "recall_at_5": 0.8171102302755757,
+      "mrr": 0.7416383540958853,
+      "p95_ms": 22.88081
+    }
+  ]
+}

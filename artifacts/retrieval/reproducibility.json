@@ -1,0 +1,7 @@
+{
+  "runs": 2,
+  "prediction_rows_per_run": 4588,
+  "rankings_scores_and_metrics_identical": true,
+  "latency_excluded_from_equality_check": true,
+  "canonical_predictions_sha256": "5589aba8a27a85559d9340fd7d9d144e3dc38406acb771aefb4972e526ec3fb3"
+}

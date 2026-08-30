@@ -1,0 +1,25 @@
+dataset:
+  name: FinQA
+  revision: 0f16e2867befa6840783e58be38c9efb9229d742
+
+evaluation:
+  top_k: 5
+  selection_split: dev
+  locked_split: test
+  selection_rule: highest Recall@5, then MRR, then lower P95 latency
+
+retrieval:
+  methods:
+    - bm25
+    - dense
+    - hybrid
+    - hybrid_rerank
+  candidate_k: 10
+  rrf_k: 60
+  bm25_weight: 0.5
+  dense_weight: 1.0
+  dense_model: sentence-transformers/all-MiniLM-L6-v2
+  reranker_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+
+runtime:
+  device: cuda
