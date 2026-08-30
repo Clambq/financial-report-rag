@@ -31,7 +31,7 @@ The project is complete only when all of the following are true:
 - Reciprocal-rank fusion of BM25 and dense rankings.
 - Cross-encoder reranking of the fused candidate set.
 - Text and table source citations.
-- A controlled numerical-execution comparison using a small Qwen instruct model and a deterministic Python calculator.
+- A controlled numerical-execution comparison using the official `Qwen/Qwen3-4B-Instruct-2507` model and a deterministic Python calculator.
 - Offline evaluation, FastAPI serving, tests, and GitHub documentation.
 
 ### Deferred
@@ -83,7 +83,7 @@ The numerical comparison isolates arithmetic execution from evidence retrieval a
 For each eligible held-out FinQA numerical question:
 
 1. Provide the same gold evidence and symbolic operation program to both conditions.
-2. In the **direct-LLM condition**, ask the configured Qwen instruct model to calculate and return the final answer.
+2. In the **direct-LLM condition**, ask `Qwen/Qwen3-4B-Instruct-2507` to calculate and return the final answer.
 3. In the **tool condition**, execute the symbolic program with a whitelisted deterministic Python calculator and return the result.
 4. Normalize percentages, currency symbols, commas, signs, and rounding consistently before comparison with the gold answer.
 
