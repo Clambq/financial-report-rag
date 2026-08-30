@@ -4,13 +4,13 @@
 
 ## 30 秒介绍
 
-I built a financial-report RAG system on FinQA that combines BM25, dense retrieval, reciprocal-rank fusion, and cross-encoder reranking. On 1,147 held-out test queries, it improved Recall@5 from 72.09% to 81.46% and MRR from 0.622 to 0.746. For numerical questions, I added a restricted Python executor instead of letting the LLM calculate directly; in a controlled 100-query experiment using the same gold evidence and program, it reduced arithmetic error rate from 52% to 0%. I exposed the pipeline through FastAPI with structured responses, source citations, generated-program visibility, and human-review fallback.
+I built a financial-report RAG system on FinQA that combines BM25, dense retrieval, reciprocal-rank fusion, and cross-encoder reranking. On 1,147 held-out test queries, it improved Recall@5 from 72.09% to 81.46% and MRR@5 from 0.622 to 0.746. For numerical questions, I added a restricted Python executor instead of letting the LLM calculate directly; in a controlled 100-query experiment using the same gold evidence and program, it reduced arithmetic error rate from 52% to 0%. I exposed the pipeline through FastAPI with structured responses, source citations, generated-program visibility, and human-review fallback.
 
 ## 两分钟展开
 
 FinQA 的每条样本包含金融报告正文、表格、问题、支持证据和符号化计算程序。我先把正文段落和表格行转换成稳定的 evidence units，并限制在单份报告内检索。BM25 对精确指标、年份和专有词很强，dense retriever 对同义表达更强，所以我分别取候选，用 weighted reciprocal-rank fusion 合并名次，再用 cross-encoder 对 query–evidence pair 做精排。
 
-为了防止数据泄漏，我只在 883 条 development queries 上选择 candidate count 和 fusion weight，冻结配置后才在 1,147 条 test queries 上跑两遍。最终 Recall@5 是 81.46%，比 BM25 的 72.09% 高 9.37 个百分点，MRR 从 0.622 提升到 0.746。
+为了防止数据泄漏，我只在 883 条 development queries 上选择 candidate count 和 fusion weight，冻结配置后才在 1,147 条 test queries 上跑两遍。最终 Recall@5 是 81.46%，比 BM25 的 72.09% 高 9.37 个百分点，MRR@5 从 0.622 提升到 0.746。
 
 数值部分我把“能否找证据/生成程序”和“能否正确执行算术”拆开。固定 100 个 test IDs，并让 Qwen 和 Python 条件都拿到相同 gold evidence 与 gold symbolic program。Qwen 直接计算正确 48 条，restricted Decimal executor 正确 100 条，所以算术错误率从 52% 降到 0%。这个实验只证明 tool execution 的价值，不代表端到端 program generation 是 100%。
 
@@ -24,7 +24,7 @@ FinQA 的每条样本包含金融报告正文、表格、问题、支持证据�
 | 72.09% | BM25 Recall@5 | `artifacts/retrieval/metrics_summary.json` |
 | 81.46% | Hybrid + reranker Recall@5 | `artifacts/retrieval/metrics_summary.json` |
 | +9.37 pp | 81.46% − 72.09% | `artifacts/RESUME_BULLETS.md`，由 JSON 自动计算 |
-| 0.622 → 0.746 | BM25 与最终方法的 MRR | `artifacts/retrieval/metrics_summary.json` |
+| 0.622 → 0.746 | BM25 与最终方法的 MRR@5 | `artifacts/retrieval/metrics_summary.json` |
 | 100 | 固定 numerical sample size | `artifacts/numerical/experiment_manifest.json` |
 | 48% → 100% | Direct Qwen 与 Python exact match | `artifacts/numerical/metrics_summary.json` |
 | 52% → 0% | Direct Qwen 与 Python arithmetic error rate | `artifacts/numerical/metrics_summary.json` |
@@ -38,7 +38,7 @@ FinQA 的每条样本包含金融报告正文、表格、问题、支持证据�
 
 - **Recall@5**：前五条结果覆盖了多少 gold evidence。一个问题可能有多个 gold evidence，所以它比简单的 hit 更严格。
 - **Hit@5**：前五条里是否至少出现一条 gold evidence，只取 0 或 1。
-- **MRR**：第一条相关证据名次的倒数。相关证据排第一得 1，排第二得 0.5。
+- **MRR@5**：前五条结果里第一条相关证据名次的倒数。相关证据排第一得 1，排第二得 0.5；前五条没有相关证据时为 0。
 - **NDCG@5**：考虑多个相关证据及其位置的折损累计增益，再用理想排序归一化。
 - **Exact Match**：经过固定金融数字 normalization 后，预测与 gold 是否在 `0.0001` tolerance 内一致；yes/no 必须完全一致。
 - **P50/P95 latency**：50%/95% 请求不超过的延迟。模型下载和一次性加载不算在检索延迟中。
@@ -65,7 +65,7 @@ Bi-encoder 在构建 evidence embedding 时看不到 query，速度快但交互�
 
 ### 5. How did you choose candidate_k and fusion weights?
 
-只在 development split 比较 `candidate_k={10,20}` 和 BM25 weight `{0.5,1,2}`；先按 Recall@5，再按 MRR，再按较低 P95 选。最终是 candidate 10、BM25 0.5、dense 1.0。
+只在 development split 比较 `candidate_k={10,20}` 和 BM25 weight `{0.5,1,2}`；先按 Recall@5，再按 MRR@5，再按较低 P95 选。最终是 candidate 10、BM25 0.5、dense 1.0。
 
 ### 6. Did you tune on the test set?
 

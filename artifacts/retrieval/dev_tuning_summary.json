@@ -1,5 +1,5 @@
 {
-  "selection_rule": "highest Recall@5, then MRR, then lower P95 latency",
+  "selection_rule": "highest Recall@5, then MRR@5, then lower P95 latency",
   "query_count": 883,
   "split": "dev",
   "selected": {

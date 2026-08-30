@@ -1,7 +1,12 @@
 import re
 from pathlib import Path
 
-from finqa_rag.evaluation.report import format_percent, verify_artifacts, write_reports
+from finqa_rag.evaluation.report import (
+    analyze_error_artifacts,
+    format_percent,
+    verify_artifacts,
+    write_reports,
+)
 
 
 RETRIEVAL_SUMMARY = {
@@ -91,3 +96,15 @@ def test_verify_published_artifacts_recomputes_metrics() -> None:
     assert verified["numerical_prediction_rows"] == 100
     assert verified["formulas_verified"] is True
     assert verified["publication_hashes_verified"] is True
+
+
+def test_error_analysis_is_derived_from_published_predictions() -> None:
+    artifact_root = Path(__file__).parents[1] / "artifacts"
+
+    analysis = analyze_error_artifacts(artifact_root)
+
+    assert analysis["retrieval"]["improved_vs_bm25"] == 219
+    assert analysis["retrieval"]["rerank_miss"] == 80
+    assert analysis["numerical"]["direct_mismatches"] == 52
+    assert analysis["numerical"]["percent_outputs"] == 19
+    assert len(analysis["retrieval"]["representative_miss_ids"]) == 5

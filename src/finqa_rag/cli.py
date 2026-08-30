@@ -13,7 +13,11 @@ from finqa_rag.api.bootstrap import build_service_app
 from finqa_rag.data.download import download_finqa
 from finqa_rag.data.finqa import load_split
 from finqa_rag.evaluation.numerical_runner import run_numerical_evaluation
-from finqa_rag.evaluation.report import verify_artifacts, write_reports
+from finqa_rag.evaluation.report import (
+    analyze_error_artifacts,
+    verify_artifacts,
+    write_reports,
+)
 from finqa_rag.evaluation.retrieval_runner import run_retrieval_evaluation
 from finqa_rag.generation.qwen import QwenGenerator
 
@@ -216,7 +220,12 @@ def generate_reports(
             encoding="utf-8"
         )
     )
-    paths = write_reports(retrieval, numerical, artifact_root)
+    paths = write_reports(
+        retrieval,
+        numerical,
+        artifact_root,
+        error_analysis=analyze_error_artifacts(artifact_root),
+    )
     typer.echo(
         json.dumps(
             {

@@ -177,10 +177,82 @@ def verify_artifacts(artifact_root: Path) -> dict[str, object]:
     }
 
 
+def analyze_error_artifacts(artifact_root: Path) -> dict[str, object]:
+    """Derive descriptive error counts from the published prediction rows."""
+
+    retrieval_rows = _read_jsonl(artifact_root / "retrieval" / "predictions.jsonl")
+    per_example: dict[str, dict[str, dict[str, object]]] = {}
+    for row in retrieval_rows:
+        per_example.setdefault(str(row["example_id"]), {})[str(row["method"])] = row
+    comparison = {
+        "improved_vs_bm25": 0,
+        "regressed_vs_bm25": 0,
+        "unchanged_vs_bm25": 0,
+        "rerank_complete": 0,
+        "rerank_partial": 0,
+        "rerank_miss": 0,
+    }
+    for methods in per_example.values():
+        bm25_recall = float(methods["bm25"]["metrics"]["recall_at_k"])
+        rerank_recall = float(methods["hybrid_rerank"]["metrics"]["recall_at_k"])
+        if rerank_recall > bm25_recall:
+            comparison["improved_vs_bm25"] += 1
+        elif rerank_recall < bm25_recall:
+            comparison["regressed_vs_bm25"] += 1
+        else:
+            comparison["unchanged_vs_bm25"] += 1
+        if rerank_recall == 1:
+            comparison["rerank_complete"] += 1
+        elif rerank_recall == 0:
+            comparison["rerank_miss"] += 1
+        else:
+            comparison["rerank_partial"] += 1
+    reranked_rows = [row for row in retrieval_rows if row["method"] == "hybrid_rerank"]
+    representative_miss_ids = [
+        str(row["example_id"])
+        for row in reranked_rows
+        if float(row["metrics"]["recall_at_k"]) == 0
+    ][:5]
+
+    numerical_rows = _read_jsonl(artifact_root / "numerical" / "predictions.jsonl")
+    mismatches = [row for row in numerical_rows if not bool(row["direct_correct"])]
+    numerical_counts = {
+        "direct_mismatches": len(mismatches),
+        "percent_outputs": 0,
+        "verbose_or_truncated": 0,
+        "boolean_mismatches": 0,
+        "other_numeric_mismatches": 0,
+    }
+    for row in mismatches:
+        parsed = str(row["direct_predicted_answer"]).strip()
+        raw = str(row["direct_raw_answer"]).strip()
+        if parsed.endswith("%"):
+            numerical_counts["percent_outputs"] += 1
+        elif "\n" in raw and raw != parsed:
+            numerical_counts["verbose_or_truncated"] += 1
+        elif parsed.lower() in {"yes", "no"}:
+            numerical_counts["boolean_mismatches"] += 1
+        else:
+            numerical_counts["other_numeric_mismatches"] += 1
+    return {
+        "retrieval": {
+            **comparison,
+            "representative_miss_ids": representative_miss_ids,
+        },
+        "numerical": {
+            **numerical_counts,
+            "representative_mismatch_ids": [
+                str(row["example_id"]) for row in mismatches[:5]
+            ],
+        },
+    }
+
+
 def write_reports(
     retrieval_summary: Mapping[str, object],
     numerical_summary: Mapping[str, object],
     output_dir: Path,
+    error_analysis: Mapping[str, object] | None = None,
 ) -> ReportPaths:
     retrieval_count = int(retrieval_summary["query_count"])
     numerical_count = int(numerical_summary["query_count"])
@@ -208,7 +280,7 @@ def write_reports(
             f"- Built and evaluated BM25, dense, hybrid, and cross-encoder-reranked retrieval "
             f"on {retrieval_count} held-out FinQA queries; improved Recall@5 from "
             f"{format_percent(bm25_recall)} to {format_percent(final_recall)} "
-            f"(+{recall_delta_pp:.2f} pp) and MRR from {bm25_mrr:.3f} to "
+            f"(+{recall_delta_pp:.2f} pp) and MRR@5 from {bm25_mrr:.3f} to "
             f"{final_mrr:.3f}."
         )
     else:
@@ -239,11 +311,25 @@ def write_reports(
         [retrieval_bullet, numerical_bullet, service_bullet]
     )
 
+    error_section = ""
+    if error_analysis is not None:
+        retrieval_errors = error_analysis["retrieval"]
+        numerical_errors = error_analysis["numerical"]
+        error_section = f"""
+## Error analysis derived from saved predictions
+
+- Hybrid + reranker retrieved all gold evidence for {retrieval_errors['rerank_complete']} queries, partial gold evidence for {retrieval_errors['rerank_partial']}, and no gold evidence in the top five for {retrieval_errors['rerank_miss']}.
+- Relative to BM25, per-query recall improved on {retrieval_errors['improved_vs_bm25']} queries, regressed on {retrieval_errors['regressed_vs_bm25']}, and was unchanged on {retrieval_errors['unchanged_vs_bm25']}.
+- Representative retrieval misses: {', '.join(f'`{item}`' for item in retrieval_errors['representative_miss_ids'])}.
+- The {numerical_errors['direct_mismatches']} direct-Qwen mismatches include {numerical_errors['percent_outputs']} percentage-unit outputs, {numerical_errors['verbose_or_truncated']} verbose or truncated responses, {numerical_errors['boolean_mismatches']} Boolean mismatch, and {numerical_errors['other_numeric_mismatches']} other numerical mismatches.
+- Representative direct-Qwen mismatches: {', '.join(f'`{item}`' for item in numerical_errors['representative_mismatch_ids'])}.
+"""
+
     results = f"""# Verified Results
 
 ## Retrieval on the locked FinQA test split
 
-| Method | Recall@5 | MRR | P95 latency |
+| Method | Recall@5 | MRR@5 | P95 latency |
 |---|---:|---:|---:|
 | BM25 | {format_percent(bm25_recall)} | {bm25_mrr:.3f} | {float(bm25['p95_ms']):.2f} ms |
 | Hybrid + cross-encoder reranker | {format_percent(final_recall)} | {final_mrr:.3f} | {float(reranked['p95_ms']):.2f} ms |
@@ -258,6 +344,7 @@ The locked comparison contains {retrieval_count:,} held-out queries. Development
 | Safe Python execution | {format_percent(float(tool['exact_match_rate']))} | {format_percent(tool_error)} |
 
 This {numerical_count}-query experiment deliberately gives both conditions the same gold evidence and gold symbolic program. It isolates arithmetic execution; it is not an end-to-end program-generation accuracy claim.
+{error_section}
 """
     paths = ReportPaths(
         results=output_dir / "RESULTS.md",

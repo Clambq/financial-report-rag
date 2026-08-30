@@ -6,7 +6,7 @@ The project uses the public [FinQA dataset](https://github.com/czyssrs/FinQA) at
 
 ## Verified outcomes
 
-- On 1,147 held-out FinQA test queries, Recall@5 increased from **72.09% with BM25 to 81.46% with hybrid retrieval and reranking** (+9.37 percentage points); MRR increased from 0.622 to 0.746.
+- On 1,147 held-out FinQA test queries, Recall@5 increased from **72.09% with BM25 to 81.46% with hybrid retrieval and reranking** (+9.37 percentage points); MRR@5 increased from 0.622 to 0.746.
 - In a controlled 100-query arithmetic-stage experiment, direct `Qwen/Qwen3-4B-Instruct-2507` calculation achieved 48% exact match, while the restricted Python executor achieved 100%, reducing arithmetic error rate from 52% to 0%.
 - The safe executor reproduced **8,281/8,281** public FinQA gold programs across train, development, and test splits without using `eval` or executing model-generated Python.
 - Two independent locked runs produced identical rankings, model outputs, parsed answers, and correctness results. Latency was excluded from equality checks because wall-clock timing naturally varies.
@@ -48,7 +48,7 @@ BM25 rewards exact financial terms and year/metric matches. Dense retrieval capt
 
 ### Locked retrieval test
 
-| Method | Recall@5 | Hit@5 | MRR | NDCG@5 | P95 latency |
+| Method | Recall@5 | Hit@5 | MRR@5 | NDCG@5 | P95 latency |
 |---|---:|---:|---:|---:|---:|
 | BM25 | 72.09% | 84.74% | 0.622 | 0.605 | 0.36 ms |
 | Dense | 78.43% | 90.06% | 0.724 | 0.696 | 6.16 ms |
@@ -72,7 +72,7 @@ For hybrid-plus-reranker retrieval, 800 queries retrieved every gold evidence un
 
 Representative misses show a consistent pattern: long reports with many similar tax or lease rows can rank narrative passages above the required table row. Examples include `GS/2015/page_188.pdf-2` (future rental payments), `CMCSA/2015/page_112.pdf-2` (unrecognized tax benefits), `ADBE/2008/page_89.pdf-2` (gross tax liability), `GS/2015/page_188.pdf-1` (payments after 2020), and `CDNS/2018/page_66.pdf-4` (multi-row retained-earnings adjustment).
 
-Inspection of all 52 direct-Qwen mismatches found 19 percentage-unit outputs, seven verbose or truncated responses, one Boolean mismatch, and 25 remaining numerical mismatches. These categories are descriptive diagnostics, not alternative scoring rules; published exact match always uses the fixed normalization and tolerance in the code.
+Inspection of all 52 direct-Qwen mismatches found 19 percentage-unit outputs, six verbose or truncated responses, one Boolean mismatch, and 26 remaining numerical mismatches. These mutually exclusive categories are descriptive diagnostics, not alternative scoring rules; published exact match always uses the fixed normalization and tolerance in the code.
 
 ## Reproduce on Windows
 
