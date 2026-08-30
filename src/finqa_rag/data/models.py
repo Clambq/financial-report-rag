@@ -24,5 +24,6 @@ class FinQAExample:
     answer: str
     exe_answer: str
     program: str
+    table: tuple[tuple[str, ...], ...]
     evidence: tuple[EvidenceUnit, ...]
     gold_evidence_ids: tuple[str, ...]

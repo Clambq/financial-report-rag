@@ -27,6 +27,11 @@ def test_load_split_builds_stable_evidence_and_gold_ids() -> None:
     ]
     assert first.evidence[3].text == "Metric: Revenue | 2023: 100 | 2024: 120"
     assert first.gold_evidence_ids == ("table_1",)
+    assert first.table == (
+        ("Metric", "2023", "2024"),
+        ("Revenue", "100", "120"),
+        ("Operating income", "20", "30"),
+    )
 
 
 def test_load_split_rejects_unmatched_gold_evidence(tmp_path: Path) -> None:

@@ -88,6 +88,10 @@ def _parse_example(entry: dict[str, object], split: str) -> FinQAExample:
         answer=_normalize_text(qa.get("answer", "")),
         exe_answer=_normalize_text(qa.get("exe_ans", "")),
         program=_normalize_text(qa.get("program", "")),
+        table=tuple(
+            tuple(_normalize_text(cell) for cell in raw_row)
+            for raw_row in table
+        ),
         evidence=tuple(evidence),
         gold_evidence_ids=tuple(gold_ids),
     )
