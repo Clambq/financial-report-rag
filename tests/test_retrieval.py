@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import numpy as np
+
 from finqa_rag.data.finqa import load_split
 from finqa_rag.data.models import EvidenceUnit
 from finqa_rag.evaluation.retrieval_runner import run_retrieval_evaluation
@@ -8,6 +10,33 @@ from finqa_rag.retrieval.bm25 import BM25Retriever
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "finqa_mini.json"
+
+
+class KeywordEncoder:
+    def encode(
+        self,
+        texts: list[str],
+        *,
+        normalize_embeddings: bool,
+        convert_to_numpy: bool,
+    ) -> np.ndarray:
+        vectors = []
+        for text in texts:
+            lowered = text.lower()
+            vector = np.asarray(
+                [float("revenue" in lowered), float("cash" in lowered), 1.0],
+                dtype=float,
+            )
+            vectors.append(vector / np.linalg.norm(vector))
+        return np.asarray(vectors)
+
+
+class TokenOverlapCrossEncoder:
+    def predict(self, pairs: list[tuple[str, str]]) -> np.ndarray:
+        return np.asarray(
+            [len(set(query.lower().split()) & set(evidence.lower().split())) for query, evidence in pairs],
+            dtype=float,
+        )
 
 
 def test_bm25_ranks_exact_financial_terms_first() -> None:
@@ -71,3 +100,25 @@ def test_retrieval_runner_writes_summary_manifest_and_predictions(tmp_path: Path
     assert len(predictions[0]["ranked_evidence_ids"]) == 5
     assert (tmp_path / "metrics_summary.json").exists()
     assert (tmp_path / "experiment_manifest.json").exists()
+
+
+def test_retrieval_runner_compares_all_methods_on_identical_queries(tmp_path: Path) -> None:
+    examples = load_split(FIXTURE, "test")
+
+    summary = run_retrieval_evaluation(
+        examples,
+        methods=("bm25", "dense", "hybrid", "hybrid_rerank"),
+        output_dir=tmp_path,
+        top_k=5,
+        candidate_k=5,
+        dense_encoder=KeywordEncoder(),
+        cross_encoder=TokenOverlapCrossEncoder(),
+    )
+
+    assert list(summary["methods"]) == ["bm25", "dense", "hybrid", "hybrid_rerank"]
+    predictions = [
+        json.loads(line)
+        for line in (tmp_path / "predictions.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert len(predictions) == 8
+    assert {row["example_id"] for row in predictions} == {"report-a-0", "report-b-0"}

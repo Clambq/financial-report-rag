@@ -62,3 +62,57 @@ def test_evaluate_retrieval_writes_bm25_artifacts(tmp_path: Path) -> None:
     summary = json.loads((output_dir / "metrics_summary.json").read_text(encoding="utf-8"))
     assert summary["query_count"] == 2
     assert summary["methods"]["bm25"]["recall_at_5"] == 1.0
+
+
+def test_evaluate_retrieval_forwards_hybrid_tuning_options(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    data_dir = tmp_path / "finqa"
+    data_dir.mkdir()
+    (data_dir / "dev.json").write_bytes(FIXTURE.read_bytes())
+    captured: dict[str, object] = {}
+
+    def fake_evaluation(examples, **kwargs):
+        captured.update(kwargs)
+        return {"query_count": len(examples), "methods": {}}
+
+    monkeypatch.setattr("finqa_rag.cli.run_retrieval_evaluation", fake_evaluation)
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "evaluate-retrieval",
+            "--data-dir",
+            str(data_dir),
+            "--split",
+            "dev",
+            "--methods",
+            "dense,hybrid,hybrid_rerank",
+            "--candidate-k",
+            "10",
+            "--bm25-weight",
+            "2.0",
+            "--dense-weight",
+            "0.5",
+            "--rrf-k",
+            "30",
+            "--dense-model",
+            "dense-fixture",
+            "--reranker-model",
+            "reranker-fixture",
+            "--device",
+            "cpu",
+            "--output",
+            str(tmp_path / "artifacts"),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["candidate_k"] == 10
+    assert captured["bm25_weight"] == 2.0
+    assert captured["dense_weight"] == 0.5
+    assert captured["rrf_k"] == 30
+    assert captured["dense_model_name"] == "dense-fixture"
+    assert captured["reranker_model_name"] == "reranker-fixture"
+    assert captured["device"] == "cpu"

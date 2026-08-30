@@ -54,6 +54,34 @@ def evaluate_retrieval(
         int,
         typer.Option(min=1, help="Number of evidence units returned per query."),
     ] = 5,
+    candidate_k: Annotated[
+        int,
+        typer.Option(min=1, help="Candidate pool size before optional reranking."),
+    ] = 20,
+    bm25_weight: Annotated[
+        float,
+        typer.Option(min=0.0, help="BM25 weight used by reciprocal-rank fusion."),
+    ] = 1.0,
+    dense_weight: Annotated[
+        float,
+        typer.Option(min=0.0, help="Dense weight used by reciprocal-rank fusion."),
+    ] = 1.0,
+    rrf_k: Annotated[
+        int,
+        typer.Option(min=1, help="Reciprocal-rank-fusion smoothing constant."),
+    ] = 60,
+    dense_model: Annotated[
+        str,
+        typer.Option(help="Sentence-transformer model used for dense retrieval."),
+    ] = "sentence-transformers/all-MiniLM-L6-v2",
+    reranker_model: Annotated[
+        str,
+        typer.Option(help="Cross-encoder model used to rerank fused candidates."),
+    ] = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    device: Annotated[
+        str,
+        typer.Option(help="Model device, for example cpu or cuda."),
+    ] = "cpu",
     output: Annotated[
         Path,
         typer.Option(help="Directory for summary, predictions, and manifest."),
@@ -70,5 +98,12 @@ def evaluate_retrieval(
         methods=method_names,
         output_dir=output,
         top_k=top_k,
+        candidate_k=candidate_k,
+        bm25_weight=bm25_weight,
+        dense_weight=dense_weight,
+        rrf_k=rrf_k,
+        dense_model_name=dense_model,
+        reranker_model_name=reranker_model,
+        device=device,
     )
     typer.echo(json.dumps(summary, indent=2, sort_keys=True))
