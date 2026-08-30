@@ -11,4 +11,5 @@ data/cache/
 model-cache/
 artifacts/**/*.partial
 artifacts/**/smoke/
+artifacts/retrieval/dev-*/
 artifacts/**/test-run-*/
