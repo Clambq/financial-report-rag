@@ -1,0 +1,25 @@
+{
+  "absolute_error_rate_reduction": 0.52,
+  "conditions": {
+    "direct_llm": {
+      "arithmetic_error_count": 52,
+      "arithmetic_error_rate": 0.52,
+      "exact_match_count": 48,
+      "exact_match_rate": 0.48,
+      "p50_ms": 418.0152,
+      "p95_ms": 3977.931195
+    },
+    "python_tool": {
+      "arithmetic_error_count": 0,
+      "arithmetic_error_rate": 0.0,
+      "exact_match_count": 100,
+      "exact_match_rate": 1.0,
+      "p50_ms": 0.0319,
+      "p95_ms": 0.05382
+    }
+  },
+  "model_id": "Qwen/Qwen3-4B-Instruct-2507",
+  "query_count": 100,
+  "relative_error_reduction": 1.0,
+  "split": "test"
+}

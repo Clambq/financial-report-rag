@@ -1,0 +1,11 @@
+{
+  "runs": 2,
+  "prediction_rows_per_run": 100,
+  "sample_ids_outputs_answers_and_correctness_identical": true,
+  "latency_excluded_from_equality_check": true,
+  "canonical_predictions_sha256": "af517265fe37415cf79c1052a8c39d7f3379c613e61dabcd3eb032127ec2f433",
+  "sample_composition": {
+    "table_programs": 5,
+    "greater_programs": 5
+  }
+}
