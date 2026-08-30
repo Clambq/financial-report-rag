@@ -13,6 +13,7 @@ from finqa_rag.api.bootstrap import build_service_app
 from finqa_rag.data.download import download_finqa
 from finqa_rag.data.finqa import load_split
 from finqa_rag.evaluation.numerical_runner import run_numerical_evaluation
+from finqa_rag.evaluation.report import verify_artifacts, write_reports
 from finqa_rag.evaluation.retrieval_runner import run_retrieval_evaluation
 from finqa_rag.generation.qwen import QwenGenerator
 
@@ -193,3 +194,49 @@ def serve(
         raise typer.BadParameter("split must be train, dev, or test", param_hint="split")
     service_app = build_service_app(data_dir, split, device)
     uvicorn.run(service_app, host=host, port=port)
+
+
+@app.command("generate-reports")
+def generate_reports(
+    artifact_root: Annotated[
+        Path,
+        typer.Option(help="Root containing verified retrieval and numerical artifacts."),
+    ] = Path("artifacts"),
+) -> None:
+    """Generate Markdown results and resume bullets from verified JSON only."""
+
+    verified = verify_artifacts(artifact_root)
+    retrieval = json.loads(
+        (artifact_root / "retrieval" / "metrics_summary.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    numerical = json.loads(
+        (artifact_root / "numerical" / "metrics_summary.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    paths = write_reports(retrieval, numerical, artifact_root)
+    typer.echo(
+        json.dumps(
+            {
+                **verified,
+                "results": str(paths.results),
+                "resume_bullets": str(paths.resume_bullets),
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
+
+
+@app.command("verify-artifacts")
+def verify_artifacts_command(
+    artifact_root: Annotated[
+        Path,
+        typer.Option(help="Root containing verified retrieval and numerical artifacts."),
+    ] = Path("artifacts"),
+) -> None:
+    """Recompute published metrics and deterministic-run hashes."""
+
+    typer.echo(json.dumps(verify_artifacts(artifact_root), indent=2, sort_keys=True))

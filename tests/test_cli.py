@@ -209,3 +209,26 @@ def test_serve_builds_the_shared_app_and_starts_uvicorn(
     assert captured["device"] == "cuda"
     assert captured["host"] == "127.0.0.1"
     assert captured["port"] == 8765
+
+
+def test_verify_artifacts_prints_recomputed_integrity_result(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "finqa_rag.cli.verify_artifacts",
+        lambda root: {
+            "artifact_root": str(root),
+            "formulas_verified": True,
+        },
+    )
+
+    result = CliRunner().invoke(
+        app,
+        ["verify-artifacts", "--artifact-root", str(tmp_path)],
+    )
+
+    assert result.exit_code == 0
+    output = json.loads(result.stdout)
+    assert output["formulas_verified"] is True
+    assert output["artifact_root"] == str(tmp_path)

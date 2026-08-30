@@ -1,0 +1,38 @@
+{
+  "documented_source_commit": "280cd0e7d7e5b8d5996147e3b78df8a3c560d4d9",
+  "generated_at_utc": "2026-08-30T20:29:01.1051531Z",
+  "files": [
+    {
+      "path": "retrieval/metrics_summary.json",
+      "sha256": "de32cf3dbef8d2f1a384314500f4888ba00d67ace509451c03d597925c47be84"
+    },
+    {
+      "path": "retrieval/predictions.jsonl",
+      "sha256": "beb2b9fb278a69bae928479dff3e938e060f3ea1b0443ea05c387c2655e59e66"
+    },
+    {
+      "path": "retrieval/experiment_manifest.json",
+      "sha256": "bae378c701f0e4c5c48765de83a669120ea780e64e50666505c107d88e55443e"
+    },
+    {
+      "path": "retrieval/reproducibility.json",
+      "sha256": "beeb9fd7eeeda34a04eb629d3bb75106be42450c22dfc097c112cf349ee45eda"
+    },
+    {
+      "path": "numerical/metrics_summary.json",
+      "sha256": "6120e999d0b23dbd5c3417456413e7d7dc09022f43a45cb80ef6d96b2cc65211"
+    },
+    {
+      "path": "numerical/predictions.jsonl",
+      "sha256": "5ba1d3df2441e95f648fe87d044ef0a57dbda09c6114d749feebfccf90bdf3d1"
+    },
+    {
+      "path": "numerical/experiment_manifest.json",
+      "sha256": "0e05562ed3597f7cc721ce9713f109b2686f2dd4ea924fdf723488d21136692f"
+    },
+    {
+      "path": "numerical/reproducibility.json",
+      "sha256": "a65e5064c128d4376be2eb7847d864c93d5d4a0ddbe4cd3e0cea6dc0ceffd8a1"
+    }
+  ]
+}
