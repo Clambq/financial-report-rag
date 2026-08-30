@@ -22,6 +22,14 @@ class GenerationResult:
 _NUMBER_FRAGMENT = re.compile(
     r"(?<![A-Za-z0-9_])(?:[$€£¥]\s*)?\(?[+-]?(?:[0-9][0-9,]*(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?%?\)?"
 )
+_PROGRAM_OPERATION = (
+    r"(?:add|subtract|multiply|divide|exp|greater|table_sum|table_average|"
+    r"table_max|table_min)"
+)
+_PROGRAM_SEQUENCE = re.compile(
+    rf"\b{_PROGRAM_OPERATION}\([^()\r\n]*\)"
+    rf"(?:\s*,\s*{_PROGRAM_OPERATION}\([^()\r\n]*\))*"
+)
 
 
 def parse_numeric_response(raw_text: str) -> str:
@@ -36,6 +44,13 @@ def parse_numeric_response(raw_text: str) -> str:
     if numbers:
         return numbers[-1].strip()
     return text.splitlines()[-1].strip() if text else ""
+
+
+def parse_program_response(raw_text: str) -> str:
+    """Extract the longest fixed-grammar program and discard surrounding prose."""
+
+    matches = _PROGRAM_SEQUENCE.findall(raw_text.replace("```", ""))
+    return max(matches, key=len).strip() if matches else raw_text.strip()
 
 
 class QwenGenerator:
@@ -127,12 +142,16 @@ class QwenGenerator:
             f"[{item.evidence.evidence_id}] {item.evidence.text}" for item in evidence
         )
         result = self._generate(
-            "Return only a FinQA program using add, subtract, multiply, divide, exp, "
-            "greater, table_sum, table_average, table_max, table_min, numeric "
-            "literals, const_* tokens, and backward # references. Never return Python.",
-            f"Evidence:\n{context}\n\nQuestion: {question}",
+            "Translate the financial question into exactly one FinQA program and "
+            "return only that program, with no prose or code fence. Operation meanings: "
+            "add(a,b), subtract(a,b), multiply(a,b), divide(a,b), exp(a,b), and "
+            "greater(a,b) only for yes/no comparisons. Use table_sum, table_average, "
+            "table_max, or table_min only for a named table row. Use numeric literals, "
+            "const_* tokens, and backward # references. Never return Python.",
+            "Example:\nEvidence: [text_0] Technology valued at $100 million is "
+            "amortized over 5 years.\nQuestion: How much is amortized each year?\n"
+            "Program: divide(100, 5)\n\n"
+            f"Evidence:\n{context}\n\nQuestion: {question}\nProgram:",
         )
-        raw = result.raw_text.strip().replace("```", "")
-        lines = [line.strip() for line in raw.splitlines() if line.strip()]
-        parsed = lines[-1] if lines else ""
+        parsed = parse_program_response(result.raw_text)
         return GenerationResult(result.raw_text, parsed, result.latency_ms)

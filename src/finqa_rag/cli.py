@@ -7,7 +7,9 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+import uvicorn
 
+from finqa_rag.api.bootstrap import build_service_app
 from finqa_rag.data.download import download_finqa
 from finqa_rag.data.finqa import load_split
 from finqa_rag.evaluation.numerical_runner import run_numerical_evaluation
@@ -160,3 +162,34 @@ def evaluate_numerical(
         seed=seed,
     )
     typer.echo(json.dumps(summary, indent=2, sort_keys=True))
+
+
+@app.command("serve")
+def serve(
+    data_dir: Annotated[
+        Path,
+        typer.Option(help="Directory containing the pinned FinQA JSON files."),
+    ] = Path("data/raw/finqa"),
+    split: Annotated[
+        str,
+        typer.Option(help="Public FinQA split used as the report corpus."),
+    ] = "test",
+    device: Annotated[
+        str,
+        typer.Option(help="Retrieval model device, for example cuda or cpu."),
+    ] = "cuda",
+    host: Annotated[
+        str,
+        typer.Option(help="Address for the local FastAPI server."),
+    ] = "127.0.0.1",
+    port: Annotated[
+        int,
+        typer.Option(min=1, max=65535, help="Port for the local FastAPI server."),
+    ] = 8000,
+) -> None:
+    """Start the evaluated RAG pipeline and interactive OpenAPI documentation."""
+
+    if split not in {"train", "dev", "test"}:
+        raise typer.BadParameter("split must be train, dev, or test", param_hint="split")
+    service_app = build_service_app(data_dir, split, device)
+    uvicorn.run(service_app, host=host, port=port)

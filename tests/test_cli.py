@@ -168,3 +168,44 @@ def test_evaluate_numerical_uses_locked_limit_and_seed(
     assert captured["max_new_tokens"] == 64
     assert captured["do_sample"] is False
     assert captured["output_dir"] == output
+
+
+def test_serve_builds_the_shared_app_and_starts_uvicorn(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+    sentinel_app = object()
+
+    def fake_build(data_dir: Path, split: str, device: str):
+        captured.update(data_dir=data_dir, split=split, device=device)
+        return sentinel_app
+
+    def fake_run(app, **kwargs):
+        captured.update(app=app, **kwargs)
+
+    monkeypatch.setattr("finqa_rag.cli.build_service_app", fake_build)
+    monkeypatch.setattr("finqa_rag.cli.uvicorn.run", fake_run)
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "serve",
+            "--data-dir",
+            str(tmp_path),
+            "--split",
+            "test",
+            "--device",
+            "cuda",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "8765",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["app"] is sentinel_app
+    assert captured["device"] == "cuda"
+    assert captured["host"] == "127.0.0.1"
+    assert captured["port"] == 8765

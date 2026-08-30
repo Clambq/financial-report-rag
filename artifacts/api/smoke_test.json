@@ -1,0 +1,25 @@
+{
+  "health_status": "ok",
+  "metrics_endpoint": {
+    "retrieval_query_count": 1147,
+    "numerical_query_count": 100
+  },
+  "ask_request": {
+    "report_id": "NWS/2017/page_119.pdf",
+    "question": "How much in millions will be amortized each year for the acquired technology related to the realtor.com website?"
+  },
+  "ask_response": {
+    "answer": "9.75",
+    "route": "numerical",
+    "generated_program": "divide(39, 4)",
+    "top_citation": "text_3",
+    "citation_count": 5,
+    "needs_human_review": false,
+    "error": null,
+    "latency_ms": 1222.8333
+  },
+  "runtime": {
+    "device": "NVIDIA GeForce RTX 5060 Ti",
+    "offline_model_cache": true
+  }
+}
