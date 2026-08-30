@@ -116,3 +116,55 @@ def test_evaluate_retrieval_forwards_hybrid_tuning_options(
     assert captured["dense_model_name"] == "dense-fixture"
     assert captured["reranker_model_name"] == "reranker-fixture"
     assert captured["device"] == "cpu"
+
+
+def test_evaluate_numerical_uses_locked_limit_and_seed(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    data_dir = tmp_path / "finqa"
+    data_dir.mkdir()
+    (data_dir / "test.json").write_bytes(FIXTURE.read_bytes())
+    captured: dict[str, object] = {}
+
+    class FakeQwen:
+        def __init__(self, model_id: str, max_new_tokens: int, do_sample: bool) -> None:
+            captured.update(
+                model_id=model_id,
+                max_new_tokens=max_new_tokens,
+                do_sample=do_sample,
+            )
+
+    def fake_evaluation(examples, generator, output_dir, **kwargs):
+        captured.update(kwargs)
+        captured["output_dir"] = output_dir
+        return {"query_count": kwargs["sample_size"]}
+
+    monkeypatch.setattr("finqa_rag.cli.QwenGenerator", FakeQwen)
+    monkeypatch.setattr("finqa_rag.cli.run_numerical_evaluation", fake_evaluation)
+    output = tmp_path / "numerical"
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "evaluate-numerical",
+            "--data-dir",
+            str(data_dir),
+            "--limit",
+            "1",
+            "--seed",
+            "7",
+            "--model-id",
+            "qwen-fixture",
+            "--output",
+            str(output),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["sample_size"] == 1
+    assert captured["seed"] == 7
+    assert captured["model_id"] == "qwen-fixture"
+    assert captured["max_new_tokens"] == 64
+    assert captured["do_sample"] is False
+    assert captured["output_dir"] == output

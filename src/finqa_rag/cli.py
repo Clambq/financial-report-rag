@@ -10,7 +10,9 @@ import typer
 
 from finqa_rag.data.download import download_finqa
 from finqa_rag.data.finqa import load_split
+from finqa_rag.evaluation.numerical_runner import run_numerical_evaluation
 from finqa_rag.evaluation.retrieval_runner import run_retrieval_evaluation
+from finqa_rag.generation.qwen import QwenGenerator
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -105,5 +107,56 @@ def evaluate_retrieval(
         dense_model_name=dense_model,
         reranker_model_name=reranker_model,
         device=device,
+    )
+    typer.echo(json.dumps(summary, indent=2, sort_keys=True))
+
+
+@app.command("evaluate-numerical")
+def evaluate_numerical(
+    data_dir: Annotated[
+        Path,
+        typer.Option(help="Directory containing the pinned FinQA JSON files."),
+    ] = Path("data/raw/finqa"),
+    split: Annotated[
+        str,
+        typer.Option(help="Public FinQA split to evaluate."),
+    ] = "test",
+    limit: Annotated[
+        int,
+        typer.Option(min=1, help="Number of locked numerical examples."),
+    ] = 100,
+    seed: Annotated[
+        int,
+        typer.Option(help="Seed embedded in deterministic ID hashing."),
+    ] = 42,
+    model_id: Annotated[
+        str,
+        typer.Option(help="Hugging Face causal language model identifier."),
+    ] = "Qwen/Qwen3-4B-Instruct-2507",
+    max_new_tokens: Annotated[
+        int,
+        typer.Option(min=1, help="Maximum generated tokens per direct answer."),
+    ] = 64,
+    output: Annotated[
+        Path,
+        typer.Option(help="Directory for summary, predictions, and manifest."),
+    ] = Path("artifacts/numerical/test-run-1"),
+) -> None:
+    """Compare deterministic direct-model arithmetic with safe Python execution."""
+
+    if split not in {"train", "dev", "test"}:
+        raise typer.BadParameter("split must be train, dev, or test", param_hint="split")
+    examples = load_split(data_dir / f"{split}.json", split)
+    generator = QwenGenerator(
+        model_id=model_id,
+        max_new_tokens=max_new_tokens,
+        do_sample=False,
+    )
+    summary = run_numerical_evaluation(
+        examples,
+        generator,
+        output,
+        sample_size=limit,
+        seed=seed,
     )
     typer.echo(json.dumps(summary, indent=2, sort_keys=True))
