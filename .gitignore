@@ -1,1 +1,13 @@
 .worktrees/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+data/raw/
+data/cache/
+model-cache/
+artifacts/**/*.partial
+artifacts/**/smoke/
+artifacts/**/test-run-*/
