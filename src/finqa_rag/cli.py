@@ -9,7 +9,7 @@ from typing import Annotated
 import typer
 import uvicorn
 
-from finqa_rag.api.bootstrap import build_service_app
+from finqa_rag.api.bootstrap import build_finsight_app, build_service_app
 from finqa_rag.data.download import download_finqa
 from finqa_rag.data.finqa import load_split
 from finqa_rag.evaluation.numerical_runner import run_numerical_evaluation
@@ -226,6 +226,22 @@ def serve(
         raise typer.BadParameter("split must be train, dev, or test", param_hint="split")
     service_app = build_service_app(data_dir, split, device)
     uvicorn.run(service_app, host=host, port=port)
+
+
+@app.command("serve-agent")
+def serve_agent(
+    host: Annotated[
+        str,
+        typer.Option(help="Address for the FinSight API server."),
+    ] = "0.0.0.0",
+    port: Annotated[
+        int,
+        typer.Option(min=1, max=65535, help="Port for the FinSight API server."),
+    ] = 8000,
+) -> None:
+    """Start the environment-configured vLLM-backed FinSight service."""
+
+    uvicorn.run(build_finsight_app(), host=host, port=port)
 
 
 @app.command("generate-reports")
