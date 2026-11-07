@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from finqa_rag.agents.tools import EvidenceRecord
+
 
 Capability = Literal["research", "quant", "report"]
 Route = Literal["text", "numerical", "mixed", "unsupported"]
@@ -37,6 +39,15 @@ class NodeTrace(BaseModel):
     latency_ms: float = Field(ge=0)
 
 
+class CalculationRecord(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    program: str
+    value: str
+    value_kind: Literal["decimal", "decision"]
+    verified: bool = False
+
+
 class FinSightState(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -45,8 +56,8 @@ class FinSightState(BaseModel):
     question: str
     conversation_context: list[dict[str, str]] = Field(default_factory=list)
     plan: AgentPlan | None = None
-    evidence: list[dict[str, object]] = Field(default_factory=list)
-    calculations: list[dict[str, object]] = Field(default_factory=list)
+    evidence: list[EvidenceRecord] = Field(default_factory=list)
+    calculations: list[CalculationRecord] = Field(default_factory=list)
     draft_answer: str | None = None
     final_answer: str | None = None
     citation_ids: list[str] = Field(default_factory=list)

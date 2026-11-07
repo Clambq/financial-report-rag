@@ -132,7 +132,7 @@ class ComposeGroundedReportInput(BaseModel):
 
     question: str
     evidence: list[EvidenceRecord]
-    calculations: list[ExecuteFinancialProgramOutput]
+    calculations: list[dict[str, object]]
     allowed_evidence_ids: list[str]
 
     _validate_question = field_validator("question")(_not_blank)
@@ -218,6 +218,10 @@ class ToolRegistry:
             output_type=output_type,
             handler=handler,  # type: ignore[arg-type]
         )
+
+    @property
+    def names(self) -> frozenset[str]:
+        return frozenset(self._tools)
 
     async def ainvoke(
         self,
