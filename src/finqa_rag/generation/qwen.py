@@ -105,6 +105,11 @@ class QwenGenerator:
         raw_text = self._tokenizer.decode(output_tokens, skip_special_tokens=True).strip()
         return GenerationResult(raw_text, parse_numeric_response(raw_text), latency_ms)
 
+    def generate_prompt(self, system: str, user: str) -> GenerationResult:
+        """Generate from a generic system/user prompt for agent adapters."""
+
+        return self._generate(system, user)
+
     def calculate_direct(
         self,
         question: str,
