@@ -1,0 +1,12 @@
+[
+  {"case_id":"text-1","scenario":"text","report_id":"r1","question":"Why did revenue increase?"},
+  {"case_id":"numerical-1","scenario":"numerical","report_id":"r1","question":"What was the revenue growth rate?"},
+  {"case_id":"mixed-1","scenario":"mixed","report_id":"r1","question":"Calculate and explain the margin change."},
+  {"case_id":"malformed-1","scenario":"malformed_arguments","report_id":"r1","question":"Use malformed tool arguments."},
+  {"case_id":"unknown-1","scenario":"unknown_tool","report_id":"r1","question":"Request an unknown tool."},
+  {"case_id":"missing-1","scenario":"missing_evidence","report_id":"r1","question":"Answer without evidence."},
+  {"case_id":"unsupported-1","scenario":"unsupported_operation","report_id":"r1","question":"Execute an unsupported program."},
+  {"case_id":"degraded-1","scenario":"retriever_degradation","report_id":"r1","question":"Recover from one retriever failure."},
+  {"case_id":"retry-1","scenario":"verification_retry","report_id":"r1","question":"Repair one verification failure."},
+  {"case_id":"exhausted-1","scenario":"retry_exhaustion","report_id":"r1","question":"Exhaust the verification retry."}
+]

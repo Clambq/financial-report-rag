@@ -13,6 +13,7 @@ from finqa_rag.api.bootstrap import build_service_app
 from finqa_rag.data.download import download_finqa
 from finqa_rag.data.finqa import load_split
 from finqa_rag.evaluation.numerical_runner import run_numerical_evaluation
+from finqa_rag.evaluation.agent_runner import load_agent_cases, run_agent_evaluation
 from finqa_rag.evaluation.report import (
     analyze_error_artifacts,
     verify_artifacts,
@@ -167,6 +168,33 @@ def evaluate_numerical(
         seed=seed,
     )
     typer.echo(json.dumps(summary, indent=2, sort_keys=True))
+
+
+@app.command("evaluate-agent")
+def evaluate_agent(
+    cases: Annotated[
+        Path,
+        typer.Option(help="JSON file containing deterministic agent evaluation cases."),
+    ] = Path("tests/fixtures/agent_eval_cases.json"),
+    output: Annotated[
+        Path,
+        typer.Option(help="Directory for agent metrics, predictions, and manifests."),
+    ] = Path("artifacts/agent/smoke"),
+    model: Annotated[
+        str,
+        typer.Option(help="Evaluation runtime; use fake for deterministic smoke tests."),
+    ] = "fake",
+) -> None:
+    """Run the reproducible FinSight application reliability suite."""
+
+    summary = run_agent_evaluation(load_agent_cases(cases), output, model=model)
+    typer.echo(
+        json.dumps(
+            {**summary, "output_dir": str(output)},
+            indent=2,
+            sort_keys=True,
+        )
+    )
 
 
 @app.command("serve")

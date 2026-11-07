@@ -1,0 +1,4 @@
+model: fake
+cases: tests/fixtures/agent_eval_cases.json
+output: artifacts/agent/smoke
+label: deterministic_application_test

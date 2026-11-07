@@ -11,6 +11,7 @@ from pathlib import Path
 
 from finqa_rag.common.timing import latency_summary
 from finqa_rag.evaluation.numerical_metrics import aggregate_numerical
+from finqa_rag.evaluation.agent_runner import verify_agent_artifacts
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,6 +168,18 @@ def verify_artifacts(artifact_root: Path) -> dict[str, object]:
         actual_hash = hashlib.sha256(published_path.read_bytes()).hexdigest()
         if actual_hash != entry["sha256"]:
             raise ValueError(f"publication SHA-256 mismatch: {relative_path}")
+    agent_runs: list[dict[str, object]] = []
+    agent_root = artifact_root / "agent"
+    if agent_root.exists():
+        for summary_path in sorted(agent_root.rglob("metrics_summary.json")):
+            run_dir = summary_path.parent
+            if (run_dir / "predictions.jsonl").exists():
+                agent_runs.append(
+                    {
+                        "path": str(run_dir.relative_to(artifact_root)),
+                        **verify_agent_artifacts(run_dir),
+                    }
+                )
     return {
         "retrieval_prediction_rows": len(retrieval_rows),
         "numerical_prediction_rows": len(numerical_rows),
@@ -174,6 +187,7 @@ def verify_artifacts(artifact_root: Path) -> dict[str, object]:
         "numerical_canonical_sha256": numerical_hash,
         "formulas_verified": True,
         "publication_hashes_verified": True,
+        "agent_runs": agent_runs,
     }
 
 
