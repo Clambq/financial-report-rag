@@ -2,6 +2,8 @@
 
 A reproducible proof of concept for answering text- and table-based questions over financial reports. The system combines BM25, dense retrieval, reciprocal-rank fusion, cross-encoder reranking, local Qwen generation, a restricted numerical executor, verifiable citations, and a FastAPI service.
 
+The repository now also contains **FinSight**, a bounded LangGraph multi-agent application. Its five nodes are **Supervisor**, **Research**, **Quant**, **Report**, and **Verifier**. The implementation uses typed Pydantic state and tool contracts, one bounded verification repair, JSON and Server-Sent Events APIs, deterministic application evaluation, and an optional OpenAI-compatible vLLM deployment path.
+
 The project uses the public [FinQA dataset](https://github.com/czyssrs/FinQA) at pinned revision `0f16e2867befa6840783e58be38c9efb9229d742`. Raw data and model weights are downloaded at runtime and are not redistributed.
 
 ## Verified outcomes
@@ -126,6 +128,35 @@ Recompute every published metric from prediction rows, then run the complete sui
 
 Interactive OpenAPI documentation is available at `http://127.0.0.1:8000/docs`.
 
+### FinSight multi-agent API
+
+The synchronous endpoint is `POST /agent/ask`; the streaming endpoint is `POST /agent/stream`. The SSE stream contains monotonically numbered `run_started`, node, answer, and terminal events. Disconnecting closes the upstream async iterator, and unexpected exceptions become a sanitized `run_failed` event.
+
+Run the deterministic fault-injection suite:
+
+```powershell
+.venv\Scripts\finqa-rag.exe evaluate-agent `
+  --cases tests/fixtures/agent_eval_cases.json `
+  --output artifacts/agent/smoke --model fake
+.venv\Scripts\finqa-rag.exe verify-artifacts
+```
+
+This is a **deterministic application test**, not a real-model tool-use benchmark. It deliberately includes malformed arguments, unknown tools, missing evidence, unsupported operations, retriever degradation, verification repair, and retry exhaustion. Its success rate therefore measures the fixture mix, not production accuracy.
+
+To run the vLLM-backed service, copy `.env.example` to `.env`, set the model endpoint, and start the app:
+
+```bash
+docker compose up --build app
+```
+
+On a Linux host with an NVIDIA GPU, the optional bundled vLLM profile enables automatic prefix caching:
+
+```bash
+docker compose --profile vllm up --build
+```
+
+The vLLM adapter requests `response_format.type=json_schema` for structured node output. The included profile starts vLLM with `--enable-prefix-caching`. Docker was not installed in the final Windows verification environment, so Compose syntax is contract-tested but the images were not built there.
+
 Example request:
 
 ```json
@@ -182,12 +213,16 @@ tests/                     Network-free unit and contract tests
 - Retrieval is report-local and in memory; a production multi-document deployment would require persistent indexing, access control, monitoring, and load testing.
 - QLoRA was deferred because this project tests retrieval and tool execution, not domain adaptation. A separate fine-tuning experiment should define its own baseline, held-out set, and calibration metrics.
 - Results use the public FinQA test split rather than the private leaderboard set.
+- The deterministic FinSight suite verifies state transitions, typed tools, failure handling, citations, and metric formulas. A compatible vLLM runtime was unavailable for the final run, so no **real-model** tool-call success number is published. Run the same cases into a new output directory and pass `verify-artifacts` before making such a claim.
+- The deployed factory currently uses the existing combined report-local retriever through the typed retrieval tool. The Research node supports truly concurrent lexical and dense callables, and tests prove the concurrent/degraded paths, but production load and throughput have not been benchmarked.
 
 ## Resume and interview material
 
 - [Verified resume bullets](artifacts/RESUME_BULLETS.md)
 - [Detailed results](artifacts/RESULTS.md)
 - [Project interview guide](docs/interview-guide.md)
+- [FinSight architecture](docs/finsight-architecture.md)
+- [FinSight evaluation contract](docs/finsight-evaluation.md)
 
 ## License and attribution
 

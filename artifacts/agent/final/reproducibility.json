@@ -1,0 +1,7 @@
+{
+  "canonical_predictions_sha256": "630c192d714667a3278262e616f4930b7e9b69e3b4e87ef7cd40c136c0aa0346",
+  "excluded_nondeterministic_fields": [
+    "prediction.latency_ms",
+    "tool_calls[].latency_ms"
+  ]
+}

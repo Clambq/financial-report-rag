@@ -1,0 +1,47 @@
+{
+  "after_retry_success": {
+    "count": 1,
+    "denominator": 2,
+    "rate": 0.5
+  },
+  "citation_validity": {
+    "count": 5,
+    "denominator": 7,
+    "rate": 0.7142857142857143
+  },
+  "error_category_counts": {
+    "malformed_arguments": 1,
+    "missing_evidence": 1,
+    "retriever_degradation": 1,
+    "retry_exhaustion": 1,
+    "unknown_tool": 1,
+    "unsupported_operation": 1
+  },
+  "first_attempt_success": {
+    "count": 13,
+    "denominator": 20,
+    "rate": 0.65
+  },
+  "latency": {
+    "p50_ms": 55.0,
+    "p95_ms": 95.49999999999999
+  },
+  "model_call_count": 20,
+  "numerical_verification": {
+    "count": 2,
+    "denominator": 3,
+    "rate": 0.6666666666666666
+  },
+  "query_count": 10,
+  "task_completion": {
+    "count": 5,
+    "denominator": 10,
+    "rate": 0.5
+  },
+  "tool_call_count": 22,
+  "tool_success": {
+    "count": 14,
+    "denominator": 22,
+    "rate": 0.6363636363636364
+  }
+}

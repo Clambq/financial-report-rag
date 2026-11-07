@@ -1,0 +1,18 @@
+{
+  "case_ids": [
+    "text-1",
+    "numerical-1",
+    "mixed-1",
+    "malformed-1",
+    "unknown-1",
+    "missing-1",
+    "unsupported-1",
+    "degraded-1",
+    "retry-1",
+    "exhausted-1"
+  ],
+  "label": "deterministic_application_test",
+  "model": "fake",
+  "python_version": "3.12.14",
+  "query_count": 10
+}

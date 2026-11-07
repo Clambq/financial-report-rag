@@ -18,6 +18,12 @@ The locked comparison contains 1,147 held-out queries. Development data selected
 
 This 100-query experiment deliberately gives both conditions the same gold evidence and gold symbolic program. It isolates arithmetic execution; it is not an end-to-end program-generation accuracy claim.
 
+## FinSight deterministic application test
+
+The committed `artifacts/agent/final` run covers ten deterministic success and fault-injection scenarios. It recorded 14 successful calls across 22 tool attempts (63.64%), 13/20 successful first attempts, and 1/2 successful retry attempts. Five of ten cases terminate with a final answer because the fixture deliberately includes malformed arguments, unknown tools, missing evidence, an unsupported operation, and retry exhaustion.
+
+This is a contract and failure-handling test, not a real-model tool-use accuracy result. No compatible vLLM/GPU runtime was available for the final run, so no real-model success rate is published. `verify-artifacts` reconstructs the summary from `predictions.jsonl`, checks case order, and verifies the canonical prediction hash.
+
 ## Error analysis derived from saved predictions
 
 - Hybrid + reranker retrieved all gold evidence for 800 queries, partial gold evidence for 267, and no gold evidence in the top five for 80.

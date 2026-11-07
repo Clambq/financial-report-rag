@@ -184,3 +184,41 @@ Reranker 确实提高总体 Recall，但也让 76 条 query 相对 BM25 退步�
 - 可以说：built、implemented、evaluated、improved、deployed locally、reproduced。
 - 不要说：production system、private FinQA leaderboard、100% end-to-end accuracy、arbitrary PDF support、QLoRA fine-tuning、RAGAS faithfulness，除非后续真的补做并产生新 artifact。
 - 如果被问到某个细节不知道，先说明实验边界，再回到仓库里可验证的实现和数字；不要编造线上用户、业务收益或公司部署。
+
+## FinSight Multi-Agent 面试补充
+
+### 30 秒版本
+
+我把原来的金融报告 RAG 和安全数值执行器扩展成了一个 LangGraph 多智能体应用。Supervisor 只负责结构化路由；Research 做检索并支持 BM25 与 dense 并发和降级；Quant 只生成受限 FinQA program，再交给 Decimal 执行器；Report 只能引用当前请求返回的 evidence ID；Verifier 再检查引用范围和回答数字。验证失败最多允许一次修复，第二次转人工，避免 Agent 无限循环。服务提供 `/agent/ask` 和 SSE `/agent/stream`，并有 Docker 和可选 vLLM prefix-cache 部署路径。
+
+### 为什么要五个节点，而不是一个大 Prompt？
+
+因为每个错误的责任边界不同：找不到证据回 Research，数字不一致回 Quant，表达或引用格式问题回 Report。拆开后每个节点只有一个结构化输出，工具名由注册表白名单控制，Verifier 还能决定修复目标。一个大 Prompt 很难区分错误来源，也很难证明最多重试几次。
+
+### 为什么 Supervisor 不直接执行工具？
+
+Supervisor 只产出 `AgentPlan`。代码在任何调用之前检查 `tool_names` 是否存在于 `ToolRegistry.names`；未知工具直接记录 `unknown_tool` 并终止。因此模型的文本不能变成任意函数调用。
+
+### Research 的并发和降级怎么做？
+
+两个 async 检索器用 `asyncio.gather(..., return_exceptions=True)` 同时启动。两边成功就做 RRF；一边出现预期的 timeout/connection/validation 错误时保留另一边结果并写 `retriever_degraded`；两边都失败才转人工。非预期程序异常继续抛出，不会伪装成可重试网络问题。
+
+### Verifier 到底验证什么？
+
+第一层是作用域：只把 `report_id` 等于当前请求的 evidence ID 放入 allowlist，跨报告或编造 ID 在 Pydantic 工具入参处就失败。第二层是数字：从被引用原文和 Quant calculation 取可信数字，与回答里的数字集合比较。第三层是重试：第一次失败按 issue code 回 Research、Quant 或 Report；第二次失败超过 `max_retries=1`，转人工。
+
+### 简历中的 97% 怎么回答？
+
+仓库已经实现了工具调用记录、首试/重试分母和可重算评估，但 **97% 尚未复现**。当前提交的 10 条是故障注入 smoke，故意包含失败，不能拿它替代真实模型准确率。面试时应该说：这个数字来自当时实习/原设计口径，现仓库尚缺兼容 vLLM 的真实模型复跑；如果对方继续追问，就展示 `predictions.jsonl` 的分母定义，不要把 smoke 指标说成 97%。
+
+### SSE 如何保证可调试？
+
+事件经过服务层重新编号，ID 严格递增；心跳是注释，不污染数据事件；正常和异常都只有一个 terminal event；客户端断开时会取消 pending `__anext__` 并 `aclose` 上游迭代器；异常只返回 `internal agent error`，不会把堆栈泄露给客户端。
+
+### vLLM 的结构化输出和 prefix cache 分别解决什么？
+
+结构化输出通过 OpenAI-compatible `response_format=json_schema` 约束 Supervisor、Quant 等节点的 JSON，再由 Pydantic二次校验。prefix caching 通过 `--enable-prefix-caching` 复用重复系统提示和 schema 的 prefill KV；它是性能优化，不提升准确率，本机没有 vLLM 环境，所以仓库没有发布它带来的延迟改善数字。
+
+### 当前实现最诚实的边界是什么？
+
+LangGraph 编排、类型契约、引用/数字验证、一次修复上限、JSON/SSE API、故障注入评估和部署文件都已有测试。真实 vLLM tool-use accuracy、Docker 实机启动、生产并发压测和任意 PDF 解析尚未验证；这些不能说成已经上线。
