@@ -7,7 +7,7 @@ WORKDIR /app
 RUN groupadd --system app && useradd --system --gid app --home /app app
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir ".[ml]"
 COPY configs ./configs
 COPY artifacts ./artifacts
 RUN chown -R app:app /app

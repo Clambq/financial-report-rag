@@ -1,8 +1,13 @@
 services:
   app:
     build: .
-    env_file:
-      - .env
+    environment:
+      FINSIGHT_VLLM_BASE_URL: ${FINSIGHT_VLLM_BASE_URL:-http://vllm:8000/v1}
+      FINSIGHT_VLLM_MODEL: ${FINSIGHT_VLLM_MODEL:-Qwen/Qwen3-4B-Instruct-2507}
+      FINSIGHT_VLLM_API_KEY: ${FINSIGHT_VLLM_API_KEY:-EMPTY}
+      FINSIGHT_DATA_DIR: /app/data/raw/finqa
+      FINSIGHT_SPLIT: ${FINSIGHT_SPLIT:-test}
+      FINSIGHT_DEVICE: ${FINSIGHT_DEVICE:-cpu}
     ports:
       - "8000:8000"
     volumes:

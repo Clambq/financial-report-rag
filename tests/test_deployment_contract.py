@@ -36,6 +36,8 @@ def test_compose_has_healthchecks_and_optional_vllm_prefix_cache() -> None:
     assert "--enable-prefix-caching" in text
     assert "vllm/vllm-openai" in text
     assert "service: vllm" not in text
+    assert "env_file:" not in text
+    assert "FINSIGHT_VLLM_BASE_URL:" in text
 
 
 def test_application_image_has_non_root_user_and_healthcheck() -> None:
@@ -44,4 +46,5 @@ def test_application_image_has_non_root_user_and_healthcheck() -> None:
     assert "HEALTHCHECK" in text
     assert "USER app" in text
     assert "finqa-rag" in text
+    assert '.[ml]' in text
 
