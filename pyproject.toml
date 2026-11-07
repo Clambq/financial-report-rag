@@ -15,6 +15,8 @@ dependencies = [
   "typer>=0.16,<1",
   "fastapi>=0.116,<1",
   "uvicorn>=0.35,<1",
+  "langgraph>=1.0,<2",
+  "openai>=2.0,<3",
 ]
 
 [project.optional-dependencies]
