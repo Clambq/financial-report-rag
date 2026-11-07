@@ -8,6 +8,7 @@ from pathlib import Path
 from fastapi import FastAPI
 
 from finqa_rag.api.app import create_app
+from finqa_rag.api.agent_service import AgentApiService
 from finqa_rag.api.pipeline import RAGPipeline, ReportRetrievalIndex
 from finqa_rag.data.finqa import load_split
 from finqa_rag.generation.qwen import QwenGenerator
@@ -21,6 +22,7 @@ def build_service_app(
     data_dir: Path = Path("data/raw/finqa"),
     split: str = "test",
     device: str = "cuda",
+    agent_service: AgentApiService | None = None,
 ) -> FastAPI:
     examples = load_split(data_dir / f"{split}.json", split)
     retriever = ReportRetrievalIndex(examples, device=device)
@@ -35,4 +37,4 @@ def build_service_app(
         generator=generator,
         metrics=metrics,
     )
-    return create_app(pipeline)
+    return create_app(pipeline, agent_service=agent_service)
