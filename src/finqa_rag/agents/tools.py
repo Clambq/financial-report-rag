@@ -161,6 +161,7 @@ class VerifyGroundingInput(BaseModel):
     draft_answer: str
     citation_ids: list[str]
     allowed_evidence_ids: list[str]
+    evidence: list[EvidenceRecord] = Field(default_factory=list)
     calculations: list[dict[str, object]]
 
     _validate_answer = field_validator("draft_answer")(_not_blank)
@@ -186,6 +187,69 @@ class VerifyGroundingOutput(BaseModel):
 
     passed: bool
     issues: list[VerificationIssue] = Field(default_factory=list)
+
+
+_NUMBER = re.compile(r"(?<![\w-])[-+]?\d[\d,]*(?:\.\d+)?%?")
+_UNSUPPORTED_COMPARISON = re.compile(
+    r"\b(?:more than|less than|greater than|lower than|higher than)\b",
+    re.IGNORECASE,
+)
+
+
+def _numbers(text: str) -> set[tuple[Decimal, bool]]:
+    values: set[tuple[Decimal, bool]] = set()
+    for match in _NUMBER.findall(text):
+        percent = match.endswith("%")
+        raw = match.rstrip("%").replace(",", "")
+        try:
+            values.add((Decimal(raw), percent))
+        except ArithmeticError:
+            continue
+    return values
+
+
+class GroundingVerifierTool:
+    """Deterministically check citation scope and numeric support."""
+
+    def __call__(self, request: VerifyGroundingInput) -> VerifyGroundingOutput:
+        if _UNSUPPORTED_COMPARISON.search(request.draft_answer) and not request.calculations:
+            return VerifyGroundingOutput(
+                passed=False,
+                issues=[
+                    VerificationIssue(
+                        code="unverifiable_comparison",
+                        message="comparison has no deterministic calculation",
+                        recoverable=True,
+                    )
+                ],
+            )
+
+        trusted: set[tuple[Decimal, bool]] = set()
+        cited = set(request.citation_ids)
+        for item in request.evidence:
+            if item.evidence_id in cited:
+                trusted.update(_numbers(item.text))
+        for calculation in request.calculations:
+            value = calculation.get("value")
+            if value is not None:
+                trusted.update(_numbers(str(value)))
+
+        unsupported = sorted(_numbers(request.draft_answer) - trusted)
+        if unsupported:
+            rendered = ", ".join(
+                f"{value}{'%' if percent else ''}" for value, percent in unsupported
+            )
+            return VerifyGroundingOutput(
+                passed=False,
+                issues=[
+                    VerificationIssue(
+                        code="numerical_mismatch",
+                        message=f"answer contains unsupported numbers: {rendered}",
+                        recoverable=True,
+                    )
+                ],
+            )
+        return VerifyGroundingOutput(passed=True)
 
 
 InputModel = TypeVar("InputModel", bound=BaseModel)

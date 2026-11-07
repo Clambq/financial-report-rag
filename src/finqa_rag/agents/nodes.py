@@ -25,6 +25,7 @@ from finqa_rag.agents.tools import (
     RetrieveEvidenceOutput,
     ToolFailure,
     ToolRegistry,
+    VerifyGroundingOutput,
 )
 
 
@@ -88,7 +89,15 @@ async def supervisor_node(
         for tool_name in plan.tool_names
         if tool_name not in runtime.registry.names
     ]
-    return {"plan": plan, "issues": issues}
+    blocked = bool(issues) or plan.route == "unsupported"
+    return {
+        "plan": plan,
+        "issues": issues,
+        "needs_human_review": blocked,
+        "human_review_reason": (
+            "supervisor could not produce an executable plan" if blocked else None
+        ),
+    }
 
 
 def _fuse_parallel_rankings(
@@ -271,6 +280,12 @@ async def quant_node(
                     recoverable=execution.retryable,
                 )
             ],
+            "needs_human_review": not execution.retryable,
+            "human_review_reason": (
+                "financial program could not be executed"
+                if not execution.retryable
+                else None
+            ),
         }
     assert isinstance(execution, ExecuteFinancialProgramOutput)
     return {
@@ -318,4 +333,102 @@ async def report_node(
         "draft_answer": result.answer,
         "citation_ids": result.citation_ids,
         "issues": [],
+    }
+
+
+def _repair_target(issue_codes: set[str]) -> str:
+    if any("citation" in code or code == "validation_error" for code in issue_codes):
+        return "research"
+    if any(
+        "numeric" in code or "calculation" in code or "comparison" in code
+        for code in issue_codes
+    ):
+        return "quant"
+    return "report"
+
+
+async def verifier_node(
+    state: FinSightState,
+    runtime: AgentRuntime,
+    *,
+    max_retries: int = 1,
+) -> dict[str, object]:
+    if not state.draft_answer:
+        return {
+            "verification_passed": False,
+            "repair_target": "report",
+            "needs_human_review": True,
+            "human_review_reason": "no draft answer was produced",
+            "issues": [
+                AgentIssue(
+                    code="missing_draft",
+                    message="verifier requires a draft answer",
+                    node="verifier",
+                    recoverable=False,
+                )
+            ],
+        }
+
+    current_evidence = [
+        item for item in state.evidence if item.report_id == state.report_id
+    ]
+    allowed_ids = [item.evidence_id for item in current_evidence]
+    result = await runtime.registry.ainvoke(
+        "verify_grounding",
+        {
+            "draft_answer": state.draft_answer,
+            "citation_ids": state.citation_ids,
+            "allowed_evidence_ids": allowed_ids,
+            "evidence": [item.model_dump() for item in current_evidence],
+            "calculations": [item.model_dump() for item in state.calculations],
+        },
+    )
+    if isinstance(result, ToolFailure):
+        issues = [
+            AgentIssue(
+                code=result.code,
+                message=result.message,
+                node="verifier",
+                recoverable=result.retryable or result.code == "validation_error",
+            )
+        ]
+        passed = False
+    else:
+        assert isinstance(result, VerifyGroundingOutput)
+        issues = [
+            AgentIssue(
+                code=item.code,
+                message=item.message,
+                node="verifier",
+                recoverable=item.recoverable,
+            )
+            for item in result.issues
+        ]
+        passed = result.passed and not issues
+
+    if passed:
+        return {
+            "verification_passed": True,
+            "repair_target": None,
+            "final_answer": state.draft_answer,
+            "calculations": [
+                item.model_copy(update={"verified": True})
+                for item in state.calculations
+            ],
+            "issues": [],
+            "needs_human_review": False,
+            "human_review_reason": None,
+        }
+
+    next_retry = state.retry_count + 1
+    exhausted = next_retry > max_retries
+    return {
+        "verification_passed": False,
+        "repair_target": _repair_target({item.code for item in issues}),
+        "retry_count": next_retry,
+        "issues": issues,
+        "needs_human_review": exhausted,
+        "human_review_reason": (
+            f"verification failed after {max_retries} repair" if exhausted else None
+        ),
     }

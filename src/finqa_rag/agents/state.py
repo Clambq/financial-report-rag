@@ -12,6 +12,7 @@ from finqa_rag.agents.tools import EvidenceRecord
 Capability = Literal["research", "quant", "report"]
 Route = Literal["text", "numerical", "mixed", "unsupported"]
 NodeName = Literal["supervisor", "research", "quant", "verifier", "report"]
+RepairTarget = Literal["research", "quant", "report"]
 
 
 class AgentPlan(BaseModel):
@@ -65,6 +66,8 @@ class FinSightState(BaseModel):
     retry_count: int = Field(default=0, ge=0)
     needs_human_review: bool = False
     human_review_reason: str | None = None
+    verification_passed: bool | None = None
+    repair_target: RepairTarget | None = None
     traces: list[NodeTrace] = Field(default_factory=list)
 
 
